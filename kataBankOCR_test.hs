@@ -1,7 +1,7 @@
 import Test.HUnit (Assertion, (@=?), runTestTT, Test(..), Counts(..))
 import System.Exit (ExitCode(..), exitWith)
 
-import KataBankOCR (Status (..), Account, parseAccount, createAccount, isValid)
+import KataBankOCR (Status (..), Account, parseAccount, createAccount, isValid, guess)
 
 exitProperly :: IO Counts -> IO ()
 exitProperly m = do
@@ -89,4 +89,66 @@ kataBankOCRTests = [
      "457508000"     @=? show (acct "457508000")
      "664371495 ERR" @=? show (acct "664371495")
      "86110??36 ILL" @=? show (acct "86110??36") 
+
+   , testCase "use case 4: guess acct number" $ do    
+
+     "711111111" @=? show (guess (parseAccount "\
+          \                           \n\
+          \  |  |  |  |  |  |  |  |  |\n\
+          \  |  |  |  |  |  |  |  |  |\n"))
+
+     "777777177" @=? show (guess (parseAccount "\
+          \ _  _  _  _  _  _  _  _  _ \n\
+          \  |  |  |  |  |  |  |  |  |\n\
+          \  |  |  |  |  |  |  |  |  |\n"))
+
+     "200800000" @=? show (guess (parseAccount "\
+          \ _  _  _  _  _  _  _  _  _ \n\
+          \ _|| || || || || || || || |\n\
+          \|_ |_||_||_||_||_||_||_||_|\n"))
+
+     "333393333" @=? show (guess (parseAccount "\
+          \ _  _  _  _  _  _  _  _  _ \n\
+          \ _| _| _| _| _| _| _| _| _|\n\
+          \ _| _| _| _| _| _| _| _| _|\n"))
+
+     "888888888 AMB [\"888886888\",\"888888880\",\"888888988\"]" @=? show (guess (parseAccount "\
+          \ _  _  _  _  _  _  _  _  _ \n\
+          \|_||_||_||_||_||_||_||_||_|\n\
+          \|_||_||_||_||_||_||_||_||_|\n"))
+
+     "555555555 AMB [\"555655555\",\"559555555\"]" @=? show (guess (parseAccount "\
+          \ _  _  _  _  _  _  _  _  _ \n\
+          \|_ |_ |_ |_ |_ |_ |_ |_ |_ \n\
+          \ _| _| _| _| _| _| _| _| _|\n"))
+
+     "666666666 AMB [\"666566666\",\"686666666\"]" @=? show (guess (parseAccount "\
+          \ _  _  _  _  _  _  _  _  _ \n\
+          \|_ |_ |_ |_ |_ |_ |_ |_ |_ \n\
+          \|_||_||_||_||_||_||_||_||_|\n"))
+
+     "999999999 AMB [\"899999999\",\"993999999\",\"999959999\"]" @=? show (guess (parseAccount "\
+          \ _  _  _  _  _  _  _  _  _ \n\
+          \|_||_||_||_||_||_||_||_||_|\n\
+          \ _| _| _| _| _| _| _| _| _|\n"))
+
+     "490067715 AMB [\"490067115\",\"490067719\",\"490867715\"]" @=? show (guess (parseAccount "\
+          \    _  _  _  _  _  _     _ \n\
+          \|_||_|| || ||_   |  |  ||_ \n\
+          \  | _||_||_||_|  |  |  | _|\n"))
+
+     "123456789" @=? show (guess (parseAccount "\
+          \    _  _     _  _  _  _  _ \n\
+          \ _| _| _||_||_ |_   ||_||_|\n\
+          \  ||_  _|  | _||_|  ||_| _|\n"))
+
+     "000000051" @=? show (guess (parseAccount "\
+          \ _     _  _  _  _  _  _    \n\
+          \| || || || || || || ||_   |\n\
+          \|_||_||_||_||_||_||_| _|  |\n"))
+
+     "490867715" @=? show (guess (parseAccount "\
+          \    _  _  _  _  _  _     _ \n\
+          \|_||_|| ||_||_   |  |  | _ \n\
+          \  | _||_||_||_|  |  |  | _|\n"))
   ]

@@ -1,4 +1,4 @@
-module KataBankOCR (Status (..), Account, createAccount, parseAccount, isValid) where
+module KataBankOCR (Status (..), Account, createAccount, parseAccount, isValid, guess) where
 
 import Control.Applicative (liftA3)
 import Data.Char (digitToInt, isDigit)
@@ -26,7 +26,7 @@ createAccount = liftA3 Acct id initialStatus (const [])
 
 -- tries to find a (unique) correct account number
 guess :: Account -> Account
-guess = undefined
+guess = id
 
 -- status
 initialStatus :: AccountNum -> Status
