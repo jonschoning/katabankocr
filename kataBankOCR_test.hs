@@ -1,7 +1,7 @@
 import Test.HUnit (Assertion, (@=?), runTestTT, Test(..), Counts(..))
 import System.Exit (ExitCode(..), exitWith)
 
-import KataBankOCR (Status (..), Account, parseAccount, createAccount, isChecksumValid, withStatus)
+import KataBankOCR (Status (..), Account, parseAccount, createAccount, isValid)
 
 exitProperly :: IO Counts -> IO ()
 exitProperly m = do
@@ -80,13 +80,13 @@ kataBankOCRTests = [
 
    , testCase "use case 2: calculate checksums" $ do    
 
-     True  @=? isChecksumValid (acct "345882865")
-     False @=? isChecksumValid (acct "3458?2865")
-     False @=? isChecksumValid (acct "345882866") 
+     True  @=? isValid (acct "345882865")
+     False @=? isValid (acct "3458?2865")
+     False @=? isValid (acct "345882866") 
 
    , testCase "use case 3: show account status" $ do    
 
-     "457508000"     @=? withStatus (acct "457508000")
-     "664371495 ERR" @=? withStatus (acct "664371495")
-     "86110??36 ILL" @=? withStatus (acct "86110??36") 
+     "457508000"     @=? show (acct "457508000")
+     "664371495 ERR" @=? show (acct "664371495")
+     "86110??36 ILL" @=? show (acct "86110??36") 
   ]

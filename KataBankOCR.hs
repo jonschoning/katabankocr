@@ -1,4 +1,4 @@
-module KataBankOCR (Status (..), Account, createAccount, parseAccount, isChecksumValid, withStatus) where
+module KataBankOCR (Status (..), Account, createAccount, parseAccount, isValid) where
 
 import Control.Applicative (liftA2)
 import Data.Char (digitToInt, isDigit)
@@ -6,40 +6,61 @@ import Data.List (transpose)
 import Data.List.Split (chunksOf)
 import qualified Data.Map.Strict as M
 
-type Account = String
+data Account = Acct { num :: AccountNum, status :: Status }
+               deriving (Eq)
 
-type DigitLines = [String]
-
-data Status = OK | ERR | ILL
+data Status = OK | ERR | ILL | AMB
               deriving (Eq, Show, Enum)
 
-createAccount :: String -> Account
-createAccount = id
+instance Show Account where
+  show = showWithStatus
 
+type AccountNum = String
+type AccountWithGuesses = (Account, [AccountNum])
+type DigitLines = [String]
+
+-- create
+createAccount :: AccountNum -> Account
+createAccount = liftA2 Acct id initialStatus
+
+-- tries to find a (unique) correct account number
+guess :: Account -> AccountWithGuesses
+guess = undefined
+
+-- status
+initialStatus :: AccountNum -> Status
+initialStatus s 
+  | any (== '?') s = ILL
+  | isChecksumValid s = OK
+  | otherwise = ERR
+
+showWithStatus :: Account -> String
+showWithStatus = liftA2 (++) num (disp . status)
+  where disp OK = ""
+        disp s = ' ' : show s
+
+isValid :: Account -> Bool
+isValid (Acct _ OK) = True
+isValid (Acct _ _) = False
+
+-- checksum
+isChecksumValid :: AccountNum -> Bool
+isChecksumValid a 
+  | any (not . isDigit) a = False
+  | otherwise = 0 == checksum a
+
+checksum :: AccountNum -> Int
+checksum = (`mod` 11) . sum . zipWith (*) [9, 8..1] . map digitToInt
+
+-- parsing
 parseAccount :: String -> Account
-parseAccount = concatMap (maybe "?" show . parseAccountDigit) . makeDigitLines
+parseAccount = createAccount . concatMap (maybe "?" show . parseAccountDigit) . makeDigitLines
 
 parseAccountDigit :: DigitLines -> Maybe Integer
 parseAccountDigit  = (flip M.lookup ocrMap) . concat
 
 makeDigitLines :: String -> [DigitLines]
 makeDigitLines = transpose . map (chunksOf 3) . lines
-  
-isChecksumValid :: Account -> Bool
-isChecksumValid a 
-  | any (not . isDigit) a = False
-  | otherwise = (0 ==) . (`mod` 11) . sum . zipWith (*) [9, 8..1] . map digitToInt $ a
-
-withStatus :: Account -> String
-withStatus = liftA2 (++) id (disp . status)
-  where disp OK = ""
-        disp s = ' ' : show s
-
-status :: Account -> Status
-status s 
-  | any (== '?') s = ILL
-  | isChecksumValid s = OK
-  | otherwise = ERR
 
 ocrMap :: M.Map String Integer
 ocrMap = M.fromList $ (`zip` [0..9]) . map concat . makeDigitLines $
