@@ -1,12 +1,13 @@
-module KataBankOCR (Status (..), Account, createAccount, parseAccount, isValid, guess) where
+module KataBankOCR (Status (..), Account, createAccount, parseAccountOnly, parseAccount, isValid, guess) where
 
-import Control.Applicative (liftA3)
+import Control.Applicative ((<$>), (<*>))
+import Control.Arrow ((&&&))
 import Data.Char (digitToInt, isDigit)
-import Data.List (transpose)
+import Data.List (transpose, delete, sort)
 import Data.List.Split (chunksOf)
 import qualified Data.Map.Strict as M
 
-data Account = Acct { num :: AccountNum
+data Account = Acct { acctnum :: AccountNum
                     , status :: Status
                     , ambs :: [AccountNum] }
                deriving (Eq)
@@ -14,19 +15,43 @@ data Account = Acct { num :: AccountNum
 data Status = OK | ERR | ILL | AMB
               deriving (Eq, Show, Enum)
 
-instance Show Account where
-  show = showAccount
-
 type AccountNum = String
-type DigitLines = [String]
+type Digit = String
+type AccountWithDigits = (Account, [Digit])
+
+instance Show Account where
+  show = concat . sequence [acctnum, disps . status, dispa . ambs]
+    where 
+      disps OK = ""
+      disps s = ' ' : show s
+      dispa [] = ""
+      dispa s = ' ' : show s
 
 -- create
 createAccount :: AccountNum -> Account
-createAccount = liftA3 Acct id initialStatus (const [])
+createAccount = Acct <$> id <*> initialStatus <*> const []
 
 -- tries to find a (unique) correct account number
-guess :: Account -> Account
-guess = id
+guess :: AccountWithDigits -> Account
+guess (acct, digits) = result (length validGuesses)
+  where 
+    validGuesses = filter isValid $ map (fst . createAccountFromDigits) (generateDigitLists digits)
+    result n | n == 0 = acct { status = ILL }
+             | n > 1  = acct { status = AMB, ambs = sort (map acctnum validGuesses) }
+             | otherwise = head validGuesses
+
+generateDigitLists :: [Digit] -> [[Digit]]
+generateDigitLists = generateReplacements (concatMap generateDigits . (:[]))
+    
+generateDigits :: Digit -> [Digit]
+generateDigits = generateReplacements (flip delete " |_")
+
+generateReplacements :: (a -> [a]) -> [a] -> [[a]]
+generateReplacements replacements = (map <$> substituteAtIndex <*> replacements . atIndex =<<) . mapIndex
+  where 
+    atIndex = uncurry $ flip (!!)
+    mapIndex x = map (\i -> (i, x)) [0..(length x-1)]
+    substituteAtIndex (i, xs) b = let (a, c) = splitAt i xs in a ++ [b] ++ drop 1 c
 
 -- status
 initialStatus :: AccountNum -> Status
@@ -34,13 +59,6 @@ initialStatus s
   | any (== '?') s = ILL
   | isChecksumValid s = OK
   | otherwise = ERR
-
-showAccount :: Account -> String
-showAccount = concat . sequence [num, shows . status, showa . ambs]
-  where shows OK = ""
-        shows s = ' ' : show s
-        showa [] = ""
-        showa s = ' ' : show s
 
 isValid :: Account -> Bool
 isValid (Acct _ OK _) = True
@@ -56,17 +74,23 @@ checksum :: AccountNum -> Int
 checksum = (`mod` 11) . sum . zipWith (*) [9, 8..1] . map digitToInt
 
 -- parsing
-parseAccount :: String -> Account
-parseAccount = createAccount . concatMap (maybe "?" show . parseAccountDigit) . makeDigitLines
+parseAccountOnly :: String -> Account
+parseAccountOnly = fst . parseAccount
 
-parseAccountDigit :: DigitLines -> Maybe Integer
-parseAccountDigit  = (flip M.lookup ocrMap) . concat
+parseAccount :: String -> AccountWithDigits
+parseAccount = createAccountFromDigits . makeDigitsFromString
 
-makeDigitLines :: String -> [DigitLines]
-makeDigitLines = transpose . map (chunksOf 3) . lines
+createAccountFromDigits :: [Digit] -> AccountWithDigits
+createAccountFromDigits = createAccount . (maybe "?" show . parseDigit =<<) &&& id
 
-ocrMap :: M.Map String Integer
-ocrMap = M.fromList $ (`zip` [0..9]) . map concat . makeDigitLines $
+parseDigit :: Digit -> Maybe Integer
+parseDigit  = flip M.lookup ocrMap
+
+makeDigitsFromString :: String -> [Digit]
+makeDigitsFromString = map concat . transpose . map (chunksOf 3) . lines
+
+ocrMap :: M.Map Digit Integer
+ocrMap = M.fromList $ (`zip` [0..9]) . makeDigitsFromString $
          " _     _  _     _  _  _  _  _ \n\ 
          \| |  | _| _||_||_ |_   ||_||_|\n\ 
          \|_|  ||_  _|  | _||_|  ||_| _|\n"   

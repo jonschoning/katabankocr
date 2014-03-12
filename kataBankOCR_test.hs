@@ -1,7 +1,7 @@
 import Test.HUnit (Assertion, (@=?), runTestTT, Test(..), Counts(..))
 import System.Exit (ExitCode(..), exitWith)
 
-import KataBankOCR (Status (..), Account, parseAccount, createAccount, isValid, guess)
+import KataBankOCR (Status (..), Account, parseAccountOnly, parseAccount, createAccount, isValid, guess)
 
 exitProperly :: IO Counts -> IO ()
 exitProperly m = do
@@ -23,57 +23,57 @@ kataBankOCRTests = [
 
   testCase "use case 1: parse account numbers" $ do   
 
-     acct "000000000" @=? parseAccount "\
+     acct "000000000" @=? parseAccountOnly "\
           \ _  _  _  _  _  _  _  _  _ \n\
           \| || || || || || || || || |\n\
           \|_||_||_||_||_||_||_||_||_|\n"
 
-     acct "111111111" @=? parseAccount "\
+     acct "111111111" @=? parseAccountOnly "\
           \                           \n\
           \  |  |  |  |  |  |  |  |  |\n\
           \  |  |  |  |  |  |  |  |  |\n"
 
-     acct "222222222" @=? parseAccount "\
+     acct "222222222" @=? parseAccountOnly "\
           \ _  _  _  _  _  _  _  _  _ \n\ 
           \ _| _| _| _| _| _| _| _| _|\n\ 
           \|_ |_ |_ |_ |_ |_ |_ |_ |_ \n"   
 
-     acct "333333333" @=? parseAccount "\
+     acct "333333333" @=? parseAccountOnly "\
           \ _  _  _  _  _  _  _  _  _ \n\ 
           \ _| _| _| _| _| _| _| _| _|\n\ 
           \ _| _| _| _| _| _| _| _| _|\n"   
 
-     acct "444444444" @=? parseAccount "\
+     acct "444444444" @=? parseAccountOnly "\
           \                           \n\ 
           \|_||_||_||_||_||_||_||_||_|\n\ 
           \  |  |  |  |  |  |  |  |  |\n"   
 
-     acct "555555555" @=? parseAccount "\
+     acct "555555555" @=? parseAccountOnly "\
           \ _  _  _  _  _  _  _  _  _ \n\ 
           \|_ |_ |_ |_ |_ |_ |_ |_ |_ \n\ 
           \ _| _| _| _| _| _| _| _| _|\n"   
 
-     acct "666666666" @=? parseAccount "\
+     acct "666666666" @=? parseAccountOnly "\
           \ _  _  _  _  _  _  _  _  _ \n\ 
           \|_ |_ |_ |_ |_ |_ |_ |_ |_ \n\ 
           \|_||_||_||_||_||_||_||_||_|\n"   
 
-     acct "777777777" @=? parseAccount "\
+     acct "777777777" @=? parseAccountOnly "\
           \ _  _  _  _  _  _  _  _  _ \n\ 
           \  |  |  |  |  |  |  |  |  |\n\ 
           \  |  |  |  |  |  |  |  |  |\n"   
 
-     acct "888888888" @=? parseAccount "\
+     acct "888888888" @=? parseAccountOnly "\
           \ _  _  _  _  _  _  _  _  _ \n\ 
           \|_||_||_||_||_||_||_||_||_|\n\ 
           \|_||_||_||_||_||_||_||_||_|\n"   
 
-     acct "999999999" @=? parseAccount "\
+     acct "999999999" @=? parseAccountOnly "\
           \ _  _  _  _  _  _  _  _  _ \n\ 
           \|_||_||_||_||_||_||_||_||_|\n\ 
           \ _| _| _| _| _| _| _| _| _|\n"   
 
-     acct "123456789" @=? parseAccount "\
+     acct "123456789" @=? parseAccountOnly "\
           \    _  _     _  _  _  _  _ \n\ 
           \  | _| _||_||_ |_   ||_||_|\n\ 
           \  ||_  _|  | _||_|  ||_| _|\n"
