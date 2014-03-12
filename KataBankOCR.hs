@@ -1,30 +1,31 @@
 module KataBankOCR (Status (..), Account, createAccount, parseAccount, isValid) where
 
-import Control.Applicative (liftA2)
+import Control.Applicative (liftA3)
 import Data.Char (digitToInt, isDigit)
 import Data.List (transpose)
 import Data.List.Split (chunksOf)
 import qualified Data.Map.Strict as M
 
-data Account = Acct { num :: AccountNum, status :: Status }
+data Account = Acct { num :: AccountNum
+                    , status :: Status
+                    , ambs :: [AccountNum] }
                deriving (Eq)
 
 data Status = OK | ERR | ILL | AMB
               deriving (Eq, Show, Enum)
 
 instance Show Account where
-  show = showWithStatus
+  show = showAccount
 
 type AccountNum = String
-type AccountWithGuesses = (Account, [AccountNum])
 type DigitLines = [String]
 
 -- create
 createAccount :: AccountNum -> Account
-createAccount = liftA2 Acct id initialStatus
+createAccount = liftA3 Acct id initialStatus (const [])
 
 -- tries to find a (unique) correct account number
-guess :: Account -> AccountWithGuesses
+guess :: Account -> Account
 guess = undefined
 
 -- status
@@ -34,14 +35,16 @@ initialStatus s
   | isChecksumValid s = OK
   | otherwise = ERR
 
-showWithStatus :: Account -> String
-showWithStatus = liftA2 (++) num (disp . status)
-  where disp OK = ""
-        disp s = ' ' : show s
+showAccount :: Account -> String
+showAccount = concat . sequence [num, shows . status, showa . ambs]
+  where shows OK = ""
+        shows s = ' ' : show s
+        showa [] = ""
+        showa s = ' ' : show s
 
 isValid :: Account -> Bool
-isValid (Acct _ OK) = True
-isValid (Acct _ _) = False
+isValid (Acct _ OK _) = True
+isValid (Acct _ _ _) = False
 
 -- checksum
 isChecksumValid :: AccountNum -> Bool
