@@ -1,4 +1,4 @@
-module KataBankOCR (Status (..), Account, createAccount, parseAccountOnly, parseAccount, isValid, guess) where
+module KataBankOCR (Status (..), Account, createAccount, parseAccountOnly, parseAccount, isValid, guessIfNotOK) where
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Arrow ((&&&))
@@ -32,8 +32,9 @@ createAccount :: AccountNum -> Account
 createAccount = Acct <$> id <*> initialStatus <*> const []
 
 -- tries to find a (unique) correct account number
-guess :: AccountWithDigits -> Account
-guess (acct, digits) = result (length validGuesses)
+guessIfNotOK :: AccountWithDigits -> Account
+guessIfNotOK (acct@(Acct _ OK _), _) = acct
+guessIfNotOK (acct, digits) = result (length validGuesses)
   where 
     validGuesses = filter isValid $ map (fst . createAccountFromDigits) (generateDigitLists digits)
     result n | n == 0 = acct { status = ILL }
@@ -44,7 +45,7 @@ generateDigitLists :: [Digit] -> [[Digit]]
 generateDigitLists = generateReplacements (concatMap generateDigits . (:[]))
     
 generateDigits :: Digit -> [Digit]
-generateDigits = generateReplacements (flip delete " |_")
+generateDigits = generateReplacements (`delete` " |_")
 
 generateReplacements :: (a -> [a]) -> [a] -> [[a]]
 generateReplacements replacements = (map <$> substituteAtIndex <*> replacements . atIndex =<<) . mapIndex
@@ -56,13 +57,13 @@ generateReplacements replacements = (map <$> substituteAtIndex <*> replacements 
 -- status
 initialStatus :: AccountNum -> Status
 initialStatus s 
-  | any (== '?') s = ILL
+  | '?' `elem` s = ILL
   | isChecksumValid s = OK
   | otherwise = ERR
 
 isValid :: Account -> Bool
 isValid (Acct _ OK _) = True
-isValid (Acct _ _ _) = False
+isValid (Acct {}) = False
 
 -- checksum
 isChecksumValid :: AccountNum -> Bool

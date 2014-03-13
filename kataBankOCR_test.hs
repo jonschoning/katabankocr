@@ -1,7 +1,7 @@
 import Test.HUnit (Assertion, (@=?), runTestTT, Test(..), Counts(..))
 import System.Exit (ExitCode(..), exitWith)
 
-import KataBankOCR (Status (..), Account, parseAccountOnly, parseAccount, createAccount, isValid, guess)
+import KataBankOCR (Status (..), Account, parseAccountOnly, parseAccount, createAccount, isValid, guessIfNotOK)
 
 exitProperly :: IO Counts -> IO ()
 exitProperly m = do
@@ -15,8 +15,8 @@ main :: IO ()
 main = exitProperly $ runTestTT $ TestList
        [ TestList kataBankOCRTests ]
 
-acct :: String -> Account
 acct = createAccount
+guess = guessIfNotOK
 
 kataBankOCRTests :: [Test]
 kataBankOCRTests = [

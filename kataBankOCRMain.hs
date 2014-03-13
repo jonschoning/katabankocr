@@ -1,18 +1,17 @@
-import KataBankOCR (parseAccountOnly, parseAccount, isValid, guess)
+import KataBankOCR (parseAccount, guessIfNotOK)
 
-import Control.Exception (bracket)
-import Data.List (intersperse)
 import System.Environment (getArgs)
+import Control.Monad (replicateM, unless)
 import System.IO
 
 main :: IO ()
 main = do args <- getArgs
-          if (length args /= 1) then error "missing input file name" else
-            bracket (openFile (head args) ReadMode) hClose loop
+          if length args /= 1 then error "missing input file name" else
+            withFile (head args) ReadMode loop
   where 
-    read4lines = sequence . replicate 4 . hGetLine
-    process4Lines = (putStrLn . show . guessIfInvalid . parseAccount =<<)
-    guessIfInvalid acct = if isValid (fst acct) then fst acct else guess acct
+    get4lines = replicateM 4 . hGetLine
+    process4Lines = print . guessIfNotOK . parseAccount
     loop handle = do
       isEof <- hIsEOF handle
-      if isEof then return () else (process4Lines (read4lines handle) >> loop handle) 
+      unless isEof $
+        get4lines handle >>= process4Lines  >> loop handle 
