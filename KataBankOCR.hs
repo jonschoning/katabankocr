@@ -2,7 +2,7 @@ module KataBankOCR (Status (..), Account, createAccount, parseAccountOnly, parse
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Arrow ((&&&))
-import Data.Char (digitToInt, isDigit)
+import Data.Char (digitToInt, isDigit, toUpper)
 import Data.List (transpose, delete, sort)
 import Data.List.Split (chunksOf)
 import qualified Data.Map.Strict as M
@@ -12,7 +12,7 @@ data Account = Acct { acctnum :: AccountNum
                     , ambs :: [AccountNum] }
                deriving (Eq)
 
-data Status = OK | ERR | ILL | AMB
+data Status = OK | Err | Ill | Amb
               deriving (Eq, Show, Enum)
 
 type AccountNum = String
@@ -23,7 +23,7 @@ instance Show Account where
   show = concat . sequence [acctnum, disps . status, dispa . ambs]
     where 
       disps OK = ""
-      disps s = ' ' : show s
+      disps s = ' ' : (map toUpper $ show s)
       dispa [] = ""
       dispa s = ' ' : show s
 
@@ -37,8 +37,8 @@ guessIfNotOK (acct@(Acct _ OK _), _) = acct
 guessIfNotOK (acct, digits) = result (length validGuesses)
   where 
     validGuesses = filter isValid $ map (fst . createAccountFromDigits) (generateDigitLists digits)
-    result n | n == 0 = acct { status = ILL }
-             | n > 1  = acct { status = AMB, ambs = sort (map acctnum validGuesses) }
+    result n | n == 0 = acct { status = Ill }
+             | n > 1  = acct { status = Amb, ambs = sort (map acctnum validGuesses) }
              | otherwise = head validGuesses
 
 generateDigitLists :: [Digit] -> [[Digit]]
@@ -57,9 +57,9 @@ generateReplacements replacements = (map <$> substituteAtIndex <*> replacements 
 -- status
 initialStatus :: AccountNum -> Status
 initialStatus s 
-  | '?' `elem` s = ILL
+  | '?' `elem` s = Ill
   | isChecksumValid s = OK
-  | otherwise = ERR
+  | otherwise = Err
 
 isValid :: Account -> Bool
 isValid (Acct _ OK _) = True
