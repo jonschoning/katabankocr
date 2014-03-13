@@ -10,7 +10,7 @@ main = do args <- getArgs
           if (length args /= 1) then error "missing input file name" else
             bracket (openFile (head args) ReadMode) hClose loop
   where 
-    read4lines = fmap (concat . (intersperse "\n")) . sequence . replicate 4 . hGetLine
+    read4lines = sequence . replicate 4 . hGetLine
     process4Lines = (putStrLn . show . guess . parseAccount =<<)
     loop handle = do
       isEof <- hIsEOF handle

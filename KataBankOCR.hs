@@ -74,11 +74,11 @@ checksum :: AccountNum -> Int
 checksum = (`mod` 11) . sum . zipWith (*) [9, 8..1] . map digitToInt
 
 -- parsing
-parseAccountOnly :: String -> Account
+parseAccountOnly :: [String] -> Account
 parseAccountOnly = fst . parseAccount
 
-parseAccount :: String -> AccountWithDigits
-parseAccount = createAccountFromDigits . makeDigitsFromString
+parseAccount :: [String] -> AccountWithDigits
+parseAccount = createAccountFromDigits . makeDigitsFromStrings
 
 createAccountFromDigits :: [Digit] -> AccountWithDigits
 createAccountFromDigits = createAccount . (maybe "?" show . parseDigit =<<) &&& id
@@ -86,11 +86,11 @@ createAccountFromDigits = createAccount . (maybe "?" show . parseDigit =<<) &&& 
 parseDigit :: Digit -> Maybe Integer
 parseDigit  = flip M.lookup ocrMap
 
-makeDigitsFromString :: String -> [Digit]
-makeDigitsFromString = map concat . transpose . map (chunksOf 3) . lines
+makeDigitsFromStrings :: [String] -> [Digit]
+makeDigitsFromStrings = map concat . transpose . map (chunksOf 3)
 
 ocrMap :: M.Map Digit Integer
-ocrMap = M.fromList $ (`zip` [0..9]) . makeDigitsFromString $
-         " _     _  _     _  _  _  _  _ \n\ 
-         \| |  | _| _||_||_ |_   ||_||_|\n\ 
-         \|_|  ||_  _|  | _||_|  ||_| _|\n"   
+ocrMap = M.fromList $ (`zip` [0..9]) . makeDigitsFromStrings $
+         [" _     _  _     _  _  _  _  _ ",
+          "| |  | _| _||_||_ |_   ||_||_|",
+          "|_|  ||_  _|  | _||_|  ||_| _|"]
