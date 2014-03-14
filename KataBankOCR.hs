@@ -87,7 +87,7 @@ parseAccount :: [String] -> AccountWithDigits
 parseAccount = createAccountFromDigits . makeDigitsFromStrings
 
 createAccountFromDigits :: [Digit] -> AccountWithDigits
-createAccountFromDigits = createAccount . (maybe "?" show . parseDigit =<<) &&& id
+createAccountFromDigits = createAccount . (concatMap $ maybe "?" show . parseDigit) &&& id
 
 parseDigit :: Digit -> Maybe Integer
 parseDigit  = flip M.lookup ocrMap
