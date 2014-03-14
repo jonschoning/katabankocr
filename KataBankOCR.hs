@@ -1,4 +1,4 @@
-module KataBankOCR (Status (..), Account, createAccount, parseAccountOnly, parseAccount, isValid, guessIfNotOK) where
+module KataBankOCR (Status (..), Account, pretty, createAccount, parseAccountOnly, parseAccount, isValid, guessIfNotOK) where
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Arrow ((&&&))
@@ -10,7 +10,7 @@ import qualified Data.Map.Strict as M
 data Account = Acct { acctnum :: AccountNum
                     , status :: Status
                     , ambs :: [AccountNum] }
-               deriving (Eq)
+               deriving (Eq, Show)
 
 data Status = OK | Err | Ill | Amb
               deriving (Eq, Show, Enum)
@@ -19,27 +19,31 @@ type AccountNum = String
 type Digit = String
 type AccountWithDigits = (Account, [Digit])
 
-instance Show Account where
-  show = concat . sequence [acctnum, disps . status, dispa . ambs]
-    where 
-      disps OK = ""
-      disps s = ' ' : (map toUpper $ show s)
-      dispa [] = ""
-      dispa s = ' ' : show s
-
 -- create
 createAccount :: AccountNum -> Account
-createAccount = Acct <$> id <*> initialStatus <*> const []
+createAccount num = Acct { acctnum = num
+                         , status = initialStatus num
+                         , ambs = []
+                         }
+
+pretty :: Account -> String
+pretty = concat . sequence [acctnum, disps . status, dispa . ambs]
+  where 
+    disps OK = ""
+    disps s = ' ' : map toUpper (show s)
+    dispa [] = ""
+    dispa s = ' ' : show s
 
 -- tries to find a (unique) correct account number
 guessIfNotOK :: AccountWithDigits -> Account
 guessIfNotOK (acct@(Acct _ OK _), _) = acct
-guessIfNotOK (acct, digits) = result (length validGuesses)
+guessIfNotOK (acct, digits) = guess
   where 
     validGuesses = filter isValid $ map (fst . createAccountFromDigits) (generateDigitLists digits)
-    result n | n == 0 = acct { status = Ill }
-             | n > 1  = acct { status = Amb, ambs = sort (map acctnum validGuesses) }
-             | otherwise = head validGuesses
+    numValid = length validGuesses
+    guess | numValid == 0 = acct { status = Ill }
+          | numValid > 1  = acct { status = Amb, ambs = sort (map acctnum validGuesses) }
+          | otherwise = head validGuesses
 
 generateDigitLists :: [Digit] -> [[Digit]]
 generateDigitLists = generateReplacements (concatMap generateDigits . (:[]))
@@ -48,22 +52,22 @@ generateDigits :: Digit -> [Digit]
 generateDigits = generateReplacements (`delete` " |_")
 
 generateReplacements :: (a -> [a]) -> [a] -> [[a]]
-generateReplacements replacements = (map <$> substituteAtIndex <*> replacements . atIndex =<<) . mapIndex
+generateReplacements replacementsFor = (map <$> substituteAtIndex <*> replacementsFor . atIndex =<<) . withIndex 
   where 
     atIndex = uncurry $ flip (!!)
-    mapIndex x = map (\i -> (i, x)) [0..(length x-1)]
+    withIndex xs = zipWith (\i _ -> (i, xs)) [0..] xs
     substituteAtIndex (i, xs) b = let (a, c) = splitAt i xs in a ++ [b] ++ drop 1 c
 
 -- status
 initialStatus :: AccountNum -> Status
 initialStatus s 
-  | '?' `elem` s = Ill
+  | '?' `elem` s      = Ill
   | isChecksumValid s = OK
-  | otherwise = Err
+  | otherwise         = Err
 
 isValid :: Account -> Bool
 isValid (Acct _ OK _) = True
-isValid (Acct {}) = False
+isValid  _            = False
 
 -- checksum
 isChecksumValid :: AccountNum -> Bool
