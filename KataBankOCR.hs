@@ -52,11 +52,11 @@ generateDigits :: Digit -> [Digit]
 generateDigits = generateReplacements (`delete` " |_")
 
 generateReplacements :: (a -> [a]) -> [a] -> [[a]]
-generateReplacements replacementsFor = (map <$> substituteAtIndex <*> replacementsFor . atIndex =<<) . withIndex 
-  where 
-    atIndex = uncurry $ flip (!!)
-    withIndex xs = zipWith (\i _ -> (i, xs)) [0..] xs
-    substituteAtIndex (i, xs) b = let (a, c) = splitAt i xs in a ++ [b] ++ drop 1 c
+generateReplacements replacementsFor xs = 
+    concatMap (\i -> substituteAtIndex xs i `map` (replacementsFor $ xs !! i)) $ zipWith const [0 ..] xs
+
+substituteAtIndex :: [a] -> Int -> a -> [a]
+substituteAtIndex xs i x = let (a, c) = splitAt i xs in a ++ [x] ++ drop 1 c
 
 -- status
 initialStatus :: AccountNum -> Status
