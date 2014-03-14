@@ -11,7 +11,7 @@ data Account = Acct { acctnum :: AccountNum
                     , ambiguousAcctNums :: [AccountNum] }
                deriving (Eq, Show)
 
-data Status = OK | InvalidChecksum | Illegible | Ambiguous
+data Status = OK | BadChecksum | Illegible | Ambiguous
               deriving (Eq, Show, Enum)
 
 type AccountNum = String
@@ -31,7 +31,7 @@ pretty = concat . sequence [acctnum, prettys . status, prettya . ambiguousAcctNu
     prettys OK = ""
     prettys Illegible = " ILL"
     prettys Ambiguous = " AMB"
-    prettys InvalidChecksum = " ERR"
+    prettys BadChecksum = " ERR"
     prettya [] = ""
     prettya s = ' ' : show s
 
@@ -64,7 +64,7 @@ initialStatus :: AccountNum -> Status
 initialStatus s 
   | '?' `elem` s      = Illegible
   | isChecksumValid s = OK
-  | otherwise         = InvalidChecksum
+  | otherwise         = BadChecksum
 
 isValid :: Account -> Bool
 isValid (Acct _ OK _) = True
