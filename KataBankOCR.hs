@@ -18,6 +18,9 @@ type AccountNum = String
 type Digit = String
 type AccountWithDigits = (Account, [Digit])
 
+illegibleSymbol :: Char
+illegibleSymbol = '?'
+
 -- create
 createAccount :: AccountNum -> Account
 createAccount num = Acct { acctnum = num
@@ -62,7 +65,8 @@ substituteAtIndex i xs x = take i xs ++ [x] ++ drop (i + 1) xs
 -- status
 initialStatus :: AccountNum -> Status
 initialStatus s 
-  | '?' `elem` s      = Illegible
+  | illegibleSymbol `elem` s 
+                      = Illegible
   | isChecksumValid s = OK
   | otherwise         = BadChecksum
 
@@ -87,7 +91,7 @@ parseAccount :: [String] -> AccountWithDigits
 parseAccount = createAccountFromDigits . makeDigitsFromStrings
 
 createAccountFromDigits :: [Digit] -> AccountWithDigits
-createAccountFromDigits = createAccount . (concatMap $ maybe "?" show . parseDigit) &&& id
+createAccountFromDigits = createAccount . (concatMap $ maybe [illegibleSymbol] show . parseDigit) &&& id
 
 parseDigit :: Digit -> Maybe Integer
 parseDigit  = flip M.lookup ocrMap
