@@ -1,6 +1,5 @@
 module KataBankOCR (Status (..), Account, pretty, createAccount, parseAccountOnly, parseAccount, isValid, guessIfNotOK) where
 
-import Control.Applicative ((<$>), (<*>))
 import Control.Arrow ((&&&))
 import Data.Char (digitToInt, isDigit, toUpper)
 import Data.List (transpose, delete, sort)
@@ -53,10 +52,10 @@ generateDigits = generateReplacements (`delete` " |_")
 
 generateReplacements :: (a -> [a]) -> [a] -> [[a]]
 generateReplacements replacementsFor xs = 
-    concatMap (\i -> substituteAtIndex xs i `map` (replacementsFor $ xs !! i)) $ zipWith const [0 ..] xs
+    concatMap (\i -> substituteAtIndex i xs `map` (replacementsFor $ xs !! i)) $ zipWith const [0 ..] xs
 
-substituteAtIndex :: [a] -> Int -> a -> [a]
-substituteAtIndex xs i x = let (a, c) = splitAt i xs in a ++ [x] ++ drop 1 c
+substituteAtIndex :: Int -> [a] -> a -> [a]
+substituteAtIndex i xs x = take i xs ++ [x] ++ drop (i + 1) xs
 
 -- status
 initialStatus :: AccountNum -> Status
