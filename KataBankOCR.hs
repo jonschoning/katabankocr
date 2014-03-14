@@ -1,17 +1,17 @@
 module KataBankOCR (Status (..), Account, pretty, createAccount, parseAccountOnly, parseAccount, isValid, guessIfNotOK) where
 
 import Control.Arrow ((&&&))
-import Data.Char (digitToInt, isDigit, toUpper)
+import Data.Char (digitToInt, isDigit)
 import Data.List (transpose, delete, sort)
 import Data.List.Split (chunksOf)
 import qualified Data.Map.Strict as M
 
 data Account = Acct { acctnum :: AccountNum
                     , status :: Status
-                    , ambs :: [AccountNum] }
+                    , ambiguousAcctNums :: [AccountNum] }
                deriving (Eq, Show)
 
-data Status = OK | Err | Ill | Amb
+data Status = OK | InvalidChecksum | Illegible | Ambiguous
               deriving (Eq, Show, Enum)
 
 type AccountNum = String
@@ -22,16 +22,18 @@ type AccountWithDigits = (Account, [Digit])
 createAccount :: AccountNum -> Account
 createAccount num = Acct { acctnum = num
                          , status = initialStatus num
-                         , ambs = []
+                         , ambiguousAcctNums = []
                          }
 
 pretty :: Account -> String
-pretty = concat . sequence [acctnum, disps . status, dispa . ambs]
+pretty = concat . sequence [acctnum, prettys . status, prettya . ambiguousAcctNums]
   where 
-    disps OK = ""
-    disps s = ' ' : map toUpper (show s)
-    dispa [] = ""
-    dispa s = ' ' : show s
+    prettys OK = ""
+    prettys Illegible = " ILL"
+    prettys Ambiguous = " AMB"
+    prettys InvalidChecksum = " ERR"
+    prettya [] = ""
+    prettya s = ' ' : show s
 
 -- tries to find a (unique) correct account number
 guessIfNotOK :: AccountWithDigits -> Account
@@ -40,8 +42,8 @@ guessIfNotOK (acct, digits) = guess
   where 
     validGuesses = filter isValid $ map (fst . createAccountFromDigits) (generateDigitLists digits)
     numValid = length validGuesses
-    guess | numValid == 0 = acct { status = Ill }
-          | numValid > 1  = acct { status = Amb, ambs = sort (map acctnum validGuesses) }
+    guess | numValid == 0 = acct { status = Illegible }
+          | numValid > 1  = acct { status = Ambiguous, ambiguousAcctNums = sort (map acctnum validGuesses) }
           | otherwise = head validGuesses
 
 generateDigitLists :: [Digit] -> [[Digit]]
@@ -60,9 +62,9 @@ substituteAtIndex i xs x = take i xs ++ [x] ++ drop (i + 1) xs
 -- status
 initialStatus :: AccountNum -> Status
 initialStatus s 
-  | '?' `elem` s      = Ill
+  | '?' `elem` s      = Illegible
   | isChecksumValid s = OK
-  | otherwise         = Err
+  | otherwise         = InvalidChecksum
 
 isValid :: Account -> Bool
 isValid (Acct _ OK _) = True
