@@ -4,6 +4,7 @@ import Control.Arrow ((&&&))
 import Data.Char (digitToInt, isDigit)
 import Data.List (transpose, delete, sort)
 import Data.List.Split (chunksOf)
+import Data.Maybe (fromJust, isJust)
 import qualified Data.Map.Strict as M
 
 data Account = Acct { acctnum :: AccountNum
@@ -41,16 +42,26 @@ pretty = concat . sequence [acctnum, prettys . status, prettya . ambiguousAcctNu
 -- tries to find a (unique) correct account number
 guessIfNotOK :: AccountWithDigits -> Account
 guessIfNotOK (acct@(Acct _ OK _), _) = acct
-guessIfNotOK (acct, digits) = guess
+guessIfNotOK awd@(acct, digits) = guess
   where 
-    validGuesses = filter isValid $ map (fst . createAccountFromDigits) (generateDigitLists digits)
+    --validGuesses = filter isValid $ map (fst . createAccountFromDigits) (generateDigitLists digits)
+    validGuesses = generateValidGuesses awd
     numValid = length validGuesses
     guess | numValid == 0 = acct { status = Illegible }
           | numValid > 1  = acct { status = Ambiguous, ambiguousAcctNums = sort (map acctnum validGuesses) }
           | otherwise = head validGuesses
 
-generateDigitLists :: [Digit] -> [[Digit]]
-generateDigitLists = generateReplacements (concatMap generateDigits . (:[]))
+generateValidGuesses :: AccountWithDigits -> [Account]
+generateValidGuesses ((Acct num _ _), digits) = 
+  [ newacct  | indexedDigits <- zip digits [0..],
+               newDigit <- generateDigits $ fst indexedDigits,
+               let mNewDigit = parseDigit newDigit,
+               isJust mNewDigit,
+               let newacct = createAccount $ substituteAtIndex (snd indexedDigits) num $ (head.show) (fromJust mNewDigit),
+               isValid newacct ] 
+
+-- generateDigitLists :: [Digit] -> [[Digit]]
+-- generateDigitLists = generateReplacements (concatMap generateDigits . (:[]))
     
 generateDigits :: Digit -> [Digit]
 generateDigits = generateReplacements (`delete` " |_")
