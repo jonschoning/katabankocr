@@ -1,6 +1,7 @@
 module KataBankOCR (Status (..), Account, pretty, createAccount, parseAccountOnly, parseAccount, isValid, guessIfNotOK) where
 
 import Control.Arrow ((&&&))
+import Control.Monad (guard)
 import Data.Char (digitToInt, isDigit)
 import Data.List (transpose, delete, sort)
 import Data.List.Split (chunksOf)
@@ -52,13 +53,14 @@ guessIfNotOK awd@(acct, digits) = guess
           | otherwise = head validGuesses
 
 generateValidGuesses :: AccountWithDigits -> [Account]
-generateValidGuesses ((Acct num _ _), digits) = 
-  [ newacct  | indexedDigits <- zip digits [0..],
-               newDigit <- generateDigits $ fst indexedDigits,
-               let mNewDigit = parseDigit newDigit,
-               isJust mNewDigit,
-               let newacct = createAccount $ substituteAtIndex (snd indexedDigits) num $ (head.show) (fromJust mNewDigit),
-               isValid newacct ] 
+generateValidGuesses (Acct num _ _, digits) = do
+  digitAtIndex  <- zip digits [0..]
+  newDigit      <- generateDigits $ fst digitAtIndex
+  let mNewDigit = parseDigit newDigit
+  guard (isJust mNewDigit)
+  let newacct   = createAccount $ substituteAtIndex (snd digitAtIndex) num $ (head.show) (fromJust mNewDigit)
+  guard (isValid newacct)
+  return newacct
 
 -- generateDigitLists :: [Digit] -> [[Digit]]
 -- generateDigitLists = generateReplacements (concatMap generateDigits . (:[]))
@@ -68,7 +70,7 @@ generateDigits = generateReplacements (`delete` " |_")
 
 generateReplacements :: (a -> [a]) -> [a] -> [[a]]
 generateReplacements replacementsFor xs = 
-    concatMap (\i -> substituteAtIndex i xs `map` (replacementsFor $ xs !! i)) $ zipWith const [0 ..] xs
+  concatMap (\i -> substituteAtIndex i xs `map` replacementsFor (xs !! i)) $ zipWith const [0 ..] xs
 
 substituteAtIndex :: Int -> [a] -> a -> [a]
 substituteAtIndex i xs x = take i xs ++ [x] ++ drop (i + 1) xs
@@ -102,7 +104,7 @@ parseAccount :: [String] -> AccountWithDigits
 parseAccount = createAccountFromDigits . makeDigitsFromStrings
 
 createAccountFromDigits :: [Digit] -> AccountWithDigits
-createAccountFromDigits = createAccount . (concatMap $ maybe [illegibleSymbol] show . parseDigit) &&& id
+createAccountFromDigits = createAccount . concatMap (maybe [illegibleSymbol] show . parseDigit) &&& id
 
 parseDigit :: Digit -> Maybe Integer
 parseDigit  = flip M.lookup ocrMap
