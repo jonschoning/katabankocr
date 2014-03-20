@@ -45,7 +45,6 @@ guessIfNotOK :: AccountWithDigits -> Account
 guessIfNotOK (acct@(Acct _ OK _), _) = acct
 guessIfNotOK awd@(acct, digits) = guess
   where 
-    --validGuesses = filter isValid $ map (fst . createAccountFromDigits) (generateDigitLists digits)
     validGuesses = generateValidGuesses awd
     numValid = length validGuesses
     guess | numValid == 0 = acct { status = Illegible }
@@ -62,9 +61,6 @@ generateValidGuesses (Acct num _ _, digits) = do
   guard (isValid newacct)
   return newacct
 
--- generateDigitLists :: [Digit] -> [[Digit]]
--- generateDigitLists = generateReplacements (concatMap generateDigits . (:[]))
-    
 generateDigits :: Digit -> [Digit]
 generateDigits = generateReplacements (`delete` " |_")
 
