@@ -43,7 +43,7 @@ pretty = concat . sequence [acctnum, prettys . status, prettya . ambiguousAcctNu
 -- tries to find a (unique) correct account number
 guessIfNotOK :: AccountWithDigits -> Account
 guessIfNotOK (acct@(Acct _ OK _), _) = acct
-guessIfNotOK awd@(acct, digits) = guess
+guessIfNotOK awd@(acct, _) = guess
   where 
     validGuesses = generateValidGuesses awd
     numValid = length validGuesses
