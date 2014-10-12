@@ -65,8 +65,10 @@ generateDigits :: Digit -> [Digit]
 generateDigits = generateReplacements (`delete` " |_")
 
 generateReplacements :: (a -> [a]) -> [a] -> [[a]]
-generateReplacements replacementsFor xs = 
-  concatMap (\i -> substituteAtIndex i xs `map` replacementsFor (xs !! i)) $ zipWith const [0 ..] xs
+generateReplacements replacementsFor xs = concatMap go indices
+  where 
+    indices = zipWith const [0 ..] xs
+    go i = map (substituteAtIndex i xs) (replacementsFor $ xs !! i)
 
 substituteAtIndex :: Int -> [a] -> a -> [a]
 substituteAtIndex i xs x = take i xs ++ [x] ++ drop (i + 1) xs
