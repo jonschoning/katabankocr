@@ -1,7 +1,7 @@
 import Test.HUnit (Assertion, (@=?), runTestTT, Test(..), Counts(..))
 import System.Exit (ExitCode(..), exitWith)
 
-import KataBankOCR (Status (..), Account, pretty, parseAccountOnly, parseAccount, createAccount, isValid, guessIfNotOK)
+import KataBankOCR (pretty, parseAccountOnly, parseAccount, createAccount, isValid, guessIfNotOK)
 
 exitProperly :: IO Counts -> IO ()
 exitProperly m = do
