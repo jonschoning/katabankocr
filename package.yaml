@@ -1,0 +1,47 @@
+name: katabankocr
+version: '0.0.1'
+synopsis: katabankocr
+description: ! '
+
+  code kata'
+category: kata
+author: Jon Schoning
+maintainer: jonschoning@gmail.com
+copyright: Copyright (c) 2015 Jon Schoning
+license: MIT
+homepage: https://github.com/jonschoning/katabankocr
+git: git://github.com/jonschoning/katabankocr.git
+bug-reports: https://github.com/jonschoning/katabankocr/issues
+dependencies:
+- base >=4.6 && <5.0
+- containers
+library:
+  source-dirs: src
+  ghc-options:
+  - -Wall
+  - -fwarn-incomplete-patterns
+  exposed-modules:
+  - KataBankOCR
+  dependencies:
+  - text
+  - split
+executables:
+  katabankocr-exe:
+    main: kataBankOCRMain.hs
+    source-dirs: app
+    dependencies:
+    - katabankocr
+    - split
+tests:
+  tests:
+    main: kataBankOCR_test.hs
+    source-dirs: tests
+    ghc-options:
+    - -Wall
+    - -fno-warn-orphans
+    - -Wall
+    - -fno-warn-orphans
+    dependencies:
+    - katabankocr
+    - text
+    - HUnit
