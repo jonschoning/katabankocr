@@ -7,13 +7,12 @@ import System.IO
 main :: IO ()
 main = do
   args <- getArgs
-  if length args < 1 
-    then error "missing input file name" 
+  if length args < 1
+    then error "missing input file name"
     else withFile (head args) ReadMode loop
-  where 
+  where
     get4lines = replicateM 4 . hGetLine
     process4Lines = putStrLn . pretty . guessIfNotOK . parseAccount
     loop handle = do
       isEof <- hIsEOF handle
-      unless isEof $
-        get4lines handle >>= process4Lines  >> loop handle 
+      unless isEof $ get4lines handle >>= process4Lines >> loop handle
