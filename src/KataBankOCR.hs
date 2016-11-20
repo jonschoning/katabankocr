@@ -5,16 +5,15 @@ module KataBankOCR
   , createAccount
   , parseAccountOnly
   , parseAccount
-  , isValid
+  , isStatusOk
   , guessIfNotOK
+  , guess
   ) where
 
-import Control.Arrow ((&&&))
-import Control.Monad (guard)
 import Data.Char (digitToInt, isDigit)
 import Data.List (transpose, delete, sort)
 import Data.List.Split (chunksOf)
-import Data.Maybe (fromJust, isJust)
+import Data.Maybe (catMaybes)
 import qualified Data.Map.Strict as M
 
 data Account = Acct
@@ -44,75 +43,73 @@ createAccount :: AccountNum -> Account
 createAccount num =
   Acct
   { acctnum = num
-  , status = initialStatus num
+  , status = calculateStatus num
   , ambiguousAcctNums = []
   }
 
 pretty :: Account -> String
-pretty =
-  concat . sequence [acctnum, prettys . status, prettya . ambiguousAcctNums]
+pretty a = acctnum a ++ prettystatus a ++ prettyacctnums a
   where
-    prettys OK = ""
-    prettys Illegible = " ILL"
-    prettys Ambiguous = " AMB"
-    prettys BadChecksum = " ERR"
-    prettya [] = ""
-    prettya s = ' ' : show s
+    prettystatus Acct {status = OK} = ""
+    prettystatus Acct {status = Illegible} = " ILL"
+    prettystatus Acct {status = Ambiguous} = " AMB"
+    prettystatus Acct {status = BadChecksum} = " ERR"
+    prettyacctnums Acct {ambiguousAcctNums = []} = ""
+    prettyacctnums Acct {ambiguousAcctNums = s} = ' ' : show s
+
+guessIfNotOK :: AccountWithDigits -> Account
+guessIfNotOK awd@(acct, _) =
+  if isStatusOk acct
+    then acct
+    else guess awd
 
 -- tries to find a (unique) correct account number
-guessIfNotOK :: AccountWithDigits -> Account
-guessIfNotOK (acct@(Acct _ OK _), _) = acct
-guessIfNotOK awd@(acct, _) = guess
+guess :: AccountWithDigits -> Account
+guess awd@(acct, _) =
+  let guesses = generateGuesses awd
+  in case guesses of
+       [] ->
+         acct
+         { status = Illegible
+         }
+       [one] -> one
+       _ ->
+         acct
+         { status = Ambiguous
+         , ambiguousAcctNums = sort $ acctnum <$> guesses
+         }
+
+generateGuesses :: AccountWithDigits -> [Account]
+generateGuesses (Acct num _ _, digits) =
+  [ acct'
+  | (i, oldDigit) <- zip [0 ..] digits 
+  , integer' <- catMaybes (parseDigit <$> genNewDigits oldDigit) 
+  , let acctNum' = updateListAt num i (showInt integer') 
+  , let acct' = createAccount acctNum' 
+  , isStatusOk acct' ]
   where
-    validGuesses = generateValidGuesses awd
-    numValid = length validGuesses
-    guess
-      | numValid == 0 =
-        acct
-        { status = Illegible
-        }
-      | numValid > 1 =
-        acct
-        { status = Ambiguous
-        , ambiguousAcctNums = sort (map acctnum validGuesses)
-        }
-      | otherwise = head validGuesses
+    genNewDigits :: Digit -> [Digit]
+    genNewDigits digitChars =
+      [ updateListAt digitChars i newChar
+      | (i, oldChar) <- zip [0 ..] digitChars 
+      , newChar <- delete oldChar " |_" ]
+    showInt = head . show
 
-generateValidGuesses :: AccountWithDigits -> [Account]
-generateValidGuesses (Acct num _ _, digits) = do
-  digitAtIndex <- zip digits [0 ..]
-  newDigit <- generateDigits $ fst digitAtIndex
-  let mNewDigit = parseDigit newDigit
-  guard (isJust mNewDigit)
-  let newacct =
-        createAccount $
-        substituteAtIndex (snd digitAtIndex) num $
-        (head . show) (fromJust mNewDigit)
-  guard (isValid newacct)
-  return newacct
+updateListAt :: [a] -> Int -> a -> [a]
+updateListAt xs i x' = take i xs ++ [x'] ++ drop (i + 1) xs
 
-generateDigits :: Digit -> [Digit]
-generateDigits = generateReplacements (`delete` " |_")
-
-generateReplacements :: (a -> [a]) -> [a] -> [[a]]
-generateReplacements replacementsFor xs = concatMap go indices
-  where
-    indices = zipWith const [0 ..] xs
-    go i = map (substituteAtIndex i xs) (replacementsFor $ xs !! i)
-
-substituteAtIndex :: Int -> [a] -> a -> [a]
-substituteAtIndex i xs x = take i xs ++ [x] ++ drop (i + 1) xs
+{-# INLINE updateListAt #-}
 
 -- status
-initialStatus :: AccountNum -> Status
-initialStatus s
+calculateStatus :: AccountNum -> Status
+calculateStatus s
   | illegibleSymbol `elem` s = Illegible
   | isChecksumValid s = OK
   | otherwise = BadChecksum
 
-isValid :: Account -> Bool
-isValid (Acct _ OK _) = True
-isValid _ = False
+isStatusOk :: Account -> Bool
+isStatusOk (Acct _ OK _) = True
+isStatusOk _ = False
 
 -- checksum
 isChecksumValid :: AccountNum -> Bool
@@ -131,8 +128,12 @@ parseAccount :: [String] -> AccountWithDigits
 parseAccount = createAccountFromDigits . makeDigitsFromStrings
 
 createAccountFromDigits :: [Digit] -> AccountWithDigits
-createAccountFromDigits =
-  createAccount . concatMap (maybe [illegibleSymbol] show . parseDigit) &&& id
+createAccountFromDigits digits = (createAccount acctNum, digits)
+  where
+    acctNum =
+      [ maybe illegibleSymbol showInt d
+      | d <- parseDigit <$> digits ]
+    showInt = head . show
 
 parseDigit :: Digit -> Maybe Integer
 parseDigit = flip M.lookup ocrMap

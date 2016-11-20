@@ -86,10 +86,10 @@ kataBankOCRTests =
               , "  ||_  _|  | _||_|  ||_| _|"
               ]
      , testCase "use case 2: calculate checksums" $
-       do True @=? isValid (acct "345882865")
-          False @=? isValid (acct "3458?2865")
-          False @=? isValid (acct "345882866")
-     , testCase "use case 3: show account status" $
+       do True @=? isStatusOk (acct "345882865")
+          False @=? isStatusOk (acct "3458?2865")
+          False @=? isStatusOk (acct "345882866")
+     , testCase "use case 2: show account status" $
        do "457508000" @=? pretty (acct "457508000")
           "664371495 ERR" @=? pretty (acct "664371495")
           "86110??36 ILL" @=? pretty (acct "86110??36")

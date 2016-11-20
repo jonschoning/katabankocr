@@ -18,6 +18,7 @@ dependencies:
 library:
   source-dirs: src
   ghc-options:
+  - -O2
   - -Wall
   - -fwarn-incomplete-patterns
   exposed-modules:
