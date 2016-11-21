@@ -13,7 +13,6 @@ module KataBankOCR
 import Data.Char (digitToInt, isDigit)
 import Data.List (transpose, delete, sort)
 import Data.List.Split (chunksOf)
-import Data.Maybe (catMaybes)
 import qualified Data.Map.Strict as M
 
 data Account = Acct
@@ -83,7 +82,7 @@ generateGuesses :: AccountWithDigits -> [Account]
 generateGuesses (Acct num _ _, digits) =
   [ acct'
   | (i, oldDigit) <- zip [0 ..] digits 
-  , integer' <- catMaybes (parseDigit <$> genNewDigits oldDigit) 
+  , Just integer' <- parseDigit <$> genNewDigits oldDigit 
   , let acctNum' = updateListAt num i (showInt integer') 
   , let acct' = createAccount acctNum' 
   , isStatusOk acct' ]
