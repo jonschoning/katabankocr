@@ -15,6 +15,7 @@ bug-reports: https://github.com/jonschoning/katabankocr/issues
 dependencies:
 - base >=4.6 && <5.0
 - containers
+- bytestring
 library:
   source-dirs: src
   ghc-options:

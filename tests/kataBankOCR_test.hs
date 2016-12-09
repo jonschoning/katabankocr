@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-} 
+
 import Test.HUnit ((@=?), runTestTT, Test(..), Counts(..))
 import System.Exit (ExitCode(..), exitWith)
 
@@ -15,88 +17,87 @@ main = exitProperly $ runTestTT $ TestList [TestList kataBankOCRTests]
 
 kataBankOCRTests :: [Test]
 kataBankOCRTests =
-  let acct = createAccount
-      guess = guessIfNotOK
+  let 
       testCase label assertion = TestLabel label (TestCase assertion)
   in [ testCase "use case 1: parse account numbers" $
-       do acct "000000000" @=?
+       do createAccount "000000000" @=?
             parseAccountOnly
               [ " _  _  _  _  _  _  _  _  _ "
               , "| || || || || || || || || |"
               , "|_||_||_||_||_||_||_||_||_|"
               ]
-          acct "111111111" @=?
+          createAccount "111111111" @=?
             parseAccountOnly
               [ "                           "
               , "  |  |  |  |  |  |  |  |  |"
               , "  |  |  |  |  |  |  |  |  |"
               ]
-          acct "222222222" @=?
+          createAccount "222222222" @=?
             parseAccountOnly
               [ " _  _  _  _  _  _  _  _  _ "
               , " _| _| _| _| _| _| _| _| _|"
               , "|_ |_ |_ |_ |_ |_ |_ |_ |_ "
               ]
-          acct "333333333" @=?
+          createAccount "333333333" @=?
             parseAccountOnly
               [ " _  _  _  _  _  _  _  _  _ "
               , " _| _| _| _| _| _| _| _| _|"
               , " _| _| _| _| _| _| _| _| _|"
               ]
-          acct "444444444" @=?
+          createAccount "444444444" @=?
             parseAccountOnly
               [ "                           "
               , "|_||_||_||_||_||_||_||_||_|"
               , "  |  |  |  |  |  |  |  |  |"
               ]
-          acct "555555555" @=?
+          createAccount "555555555" @=?
             parseAccountOnly
               [ " _  _  _  _  _  _  _  _  _ "
               , "|_ |_ |_ |_ |_ |_ |_ |_ |_ "
               , " _| _| _| _| _| _| _| _| _|"
               ]
-          acct "666666666" @=?
+          createAccount "666666666" @=?
             parseAccountOnly
               [ " _  _  _  _  _  _  _  _  _ "
               , "|_ |_ |_ |_ |_ |_ |_ |_ |_ "
               , "|_||_||_||_||_||_||_||_||_|"
               ]
-          acct "777777777" @=?
+          createAccount "777777777" @=?
             parseAccountOnly
               [ " _  _  _  _  _  _  _  _  _ "
               , "  |  |  |  |  |  |  |  |  |"
               , "  |  |  |  |  |  |  |  |  |"
               ]
-          acct "888888888" @=?
+          createAccount "888888888" @=?
             parseAccountOnly
               [ " _  _  _  _  _  _  _  _  _ "
               , "|_||_||_||_||_||_||_||_||_|"
               , "|_||_||_||_||_||_||_||_||_|"
               ]
-          acct "999999999" @=?
+          createAccount "999999999" @=?
             parseAccountOnly
               [ " _  _  _  _  _  _  _  _  _ "
               , "|_||_||_||_||_||_||_||_||_|"
               , " _| _| _| _| _| _| _| _| _|"
               ]
-          acct "123456789" @=?
+          createAccount "123456789" @=?
             parseAccountOnly
               [ "    _  _     _  _  _  _  _ "
               , "  | _| _||_||_ |_   ||_||_|"
               , "  ||_  _|  | _||_|  ||_| _|"
               ]
      , testCase "use case 2: calculate checksums" $
-       do True @=? isStatusOk (acct "345882865")
-          False @=? isStatusOk (acct "3458?2865")
-          False @=? isStatusOk (acct "345882866")
+       do True @=? isStatusOk (createAccount "345882865")
+          False @=? isStatusOk (createAccount "3458?2865")
+          False @=? isStatusOk (createAccount "345882866")
      , testCase "use case 2: show account status" $
-       do "457508000" @=? pretty (acct "457508000")
-          "664371495 ERR" @=? pretty (acct "664371495")
-          "86110??36 ILL" @=? pretty (acct "86110??36")
-     , testCase "use case 4: guess acct number" $
+       do "457508000" @=? pretty (createAccount "457508000")
+          "664371495 ERR" @=? pretty (createAccount "664371495")
+          "86110??36 ILL" @=? pretty (createAccount "86110??36")
+     , testCase "use case 4: guessIfNotOK createAccount number" $
        do "711111111" @=?
             pretty
-              (guess
+              (guessIfNotOK
                  (parseAccount
                     [ "                           "
                     , "  |  |  |  |  |  |  |  |  |"
@@ -104,7 +105,7 @@ kataBankOCRTests =
                     ]))
           "777777177" @=?
             pretty
-              (guess
+              (guessIfNotOK
                  (parseAccount
                     [ " _  _  _  _  _  _  _  _  _ "
                     , "  |  |  |  |  |  |  |  |  |"
@@ -112,7 +113,7 @@ kataBankOCRTests =
                     ]))
           "200800000" @=?
             pretty
-              (guess
+              (guessIfNotOK
                  (parseAccount
                     [ " _  _  _  _  _  _  _  _  _ "
                     , " _|| || || || || || || || |"
@@ -120,7 +121,7 @@ kataBankOCRTests =
                     ]))
           "333393333" @=?
             pretty
-              (guess
+              (guessIfNotOK
                  (parseAccount
                     [ " _  _  _  _  _  _  _  _  _ "
                     , " _| _| _| _| _| _| _| _| _|"
@@ -128,7 +129,7 @@ kataBankOCRTests =
                     ]))
           "888888888 AMB [\"888886888\",\"888888880\",\"888888988\"]" @=?
             pretty
-              (guess
+              (guessIfNotOK
                  (parseAccount
                     [ " _  _  _  _  _  _  _  _  _ "
                     , "|_||_||_||_||_||_||_||_||_|"
@@ -136,7 +137,7 @@ kataBankOCRTests =
                     ]))
           "555555555 AMB [\"555655555\",\"559555555\"]" @=?
             pretty
-              (guess
+              (guessIfNotOK
                  (parseAccount
                     [ " _  _  _  _  _  _  _  _  _ "
                     , "|_ |_ |_ |_ |_ |_ |_ |_ |_ "
@@ -144,7 +145,7 @@ kataBankOCRTests =
                     ]))
           "666666666 AMB [\"666566666\",\"686666666\"]" @=?
             pretty
-              (guess
+              (guessIfNotOK
                  (parseAccount
                     [ " _  _  _  _  _  _  _  _  _ "
                     , "|_ |_ |_ |_ |_ |_ |_ |_ |_ "
@@ -152,7 +153,7 @@ kataBankOCRTests =
                     ]))
           "999999999 AMB [\"899999999\",\"993999999\",\"999959999\"]" @=?
             pretty
-              (guess
+              (guessIfNotOK
                  (parseAccount
                     [ " _  _  _  _  _  _  _  _  _ "
                     , "|_||_||_||_||_||_||_||_||_|"
@@ -160,7 +161,7 @@ kataBankOCRTests =
                     ]))
           "490067715 AMB [\"490067115\",\"490067719\",\"490867715\"]" @=?
             pretty
-              (guess
+              (guessIfNotOK
                  (parseAccount
                     [ "    _  _  _  _  _  _     _ "
                     , "|_||_|| || ||_   |  |  ||_ "
@@ -168,7 +169,7 @@ kataBankOCRTests =
                     ]))
           "123456789" @=?
             pretty
-              (guess
+              (guessIfNotOK
                  (parseAccount
                     [ "    _  _     _  _  _  _  _ "
                     , " _| _| _||_||_ |_   ||_||_|"
@@ -176,7 +177,7 @@ kataBankOCRTests =
                     ]))
           "000000051" @=?
             pretty
-              (guess
+              (guessIfNotOK
                  (parseAccount
                     [ " _     _  _  _  _  _  _    "
                     , "| || || || || || || ||_   |"
@@ -184,7 +185,7 @@ kataBankOCRTests =
                     ]))
           "490867715" @=?
             pretty
-              (guess
+              (guessIfNotOK
                  (parseAccount
                     [ "    _  _  _  _  _  _     _ "
                     , "|_||_|| ||_||_   |  |  | _ "
