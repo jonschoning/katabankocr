@@ -14,7 +14,6 @@ module KataBankOCR
 
 import Data.Char (digitToInt, isDigit)
 import Data.List (transpose, delete, sort, unfoldr)
-import Data.Monoid
 import qualified Data.Map.Strict as M
 import qualified Data.ByteString.Char8 as BS
 
